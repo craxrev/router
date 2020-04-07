@@ -83,16 +83,33 @@ start() {
             echo "Using reserved bandwidth : setting DNLD to ${RESERVED_DNLD}kbps"
         fi
 
+        # Filter icmq packets
         $TC filter add dev $IF protocol ip parent $DLHNDL: prio 10 u32 \
                 match ip protocol 1 0xff \
                 flowid $DLHNDL:10
 
+        # Filter ACK packets
         $TC filter add dev $IF protocol ip parent $DLHNDL: prio 11 u32 \
                 match ip protocol 6 0xff \
                 match u8 0x05 0x0f at 0 \
                 match u16 0x0000 0xffc0 at 2 \
                 match u8 0x10 0xff at 33 \
                 flowid $DLHNDL:10
+
+        # Filter 6000-6100 udp ports
+        $TC filter add dev $IF protocol ip parent $DLHNDL: prio 12 u32 \
+                match ip protocol 6 0xff \
+                match ip sport 6000 0xfff0 \
+                flowid $DLHNDL:10
+        $TC filter add dev $IF protocol ip parent $DLHNDL: prio 12 u32 \
+                match ip protocol 6 0xff \
+                match ip sport 6016 0xff80 \
+                flowid $DLHNDL:10
+
+        # used this https://serverfault.com/questions/231880/how-to-match-port-range-using-u32-filter
+        # to get ports range (6000-6143)
+        # TODO: udp filtering
+
         echo
     fi
 
